@@ -1,0 +1,31 @@
+{
+  "name": "smart-helpdesk",
+  "version": "1.0.0",
+  "description": "Smart Helpdesk with Agentic Triage - AI-powered customer support automation",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "cd server && npm run dev",
+    "client:dev": "cd client && npm run dev",
+    "server:start": "cd server && npm start",
+    "client:build": "cd client && npm run build",
+    "test": "npm run server:test && npm run client:test",
+    "server:test": "cd server && npm test",
+    "client:test": "cd client && npm test",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "build": "npm run client:build",
+    "start": "npm run server:start"
+  },
+  "keywords": [
+    "helpdesk",
+    "ai",
+    "customer-support",
+    "triage",
+    "automation"
+  ],
+  "author": "Smart Helpdesk Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
