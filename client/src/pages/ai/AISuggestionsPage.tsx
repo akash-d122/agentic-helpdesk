@@ -1,23 +1,41 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { 
-  Brain, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Eye, 
-  ThumbsUp, 
+import {
+  Brain,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Eye,
+  ThumbsUp,
   ThumbsDown,
   AlertTriangle,
   Zap,
   Filter,
-  RefreshCw
+  RefreshCw,
+  MoreHorizontal,
+  Edit3,
+  Send,
+  Archive,
+  Flag,
+  Users,
+  Calendar,
+  MessageSquare,
+  FileText,
+  Settings,
+  Download,
+  Upload,
+  Keyboard,
+  Square,
+  CheckSquare,
+  Minus
 } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
+import toast from 'react-hot-toast'
 
 import { usePermissions } from '@hooks/usePermissions'
 import { formatDate, formatRelativeTime } from '@utils/helpers'
 import { apiService } from '@services/api'
+import { useAISuggestions, useSubmitAIReview, useBulkAIOperation } from '@hooks/useAI'
 
 import DataTable from '@components/ui/DataTable'
 import Button from '@components/ui/Button'
@@ -26,6 +44,11 @@ import SearchBar from '@components/ui/SearchBar'
 import { StatsGrid } from '@components/ui/StatsCard'
 import StatsCard from '@components/ui/StatsCard'
 import Card from '@components/ui/Card'
+import Modal from '@components/ui/Modal'
+import Dropdown from '@components/ui/Dropdown'
+import Tooltip from '@components/ui/Tooltip'
+import Checkbox from '@components/ui/Checkbox'
+import LoadingSpinner from '@components/ui/LoadingSpinner'
 
 interface AISuggestion {
   _id: string
@@ -73,62 +96,154 @@ interface AISuggestion {
 
 export default function AISuggestionsPage() {
   const permissions = usePermissions()
+
+  // State management
   const [filters, setFilters] = useState({
-    page: 0,
-    pageSize: 20,
+    page: 1,
+    limit: 20,
     search: '',
     status: '',
     recommendation: '',
-    autoResolve: ''
+    autoResolve: '',
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
   })
-  const [suggestions, setSuggestions] = useState<AISuggestion[]>([])
-  const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState<any>(null)
 
-  // Load suggestions
-  React.useEffect(() => {
-    loadSuggestions()
-  }, [filters])
+  const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set())
+  const [showBatchActions, setShowBatchActions] = useState(false)
+  const [showQuickReview, setShowQuickReview] = useState(false)
+  const [currentSuggestion, setCurrentSuggestion] = useState<AISuggestion | null>(null)
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false)
 
-  // Load stats
-  React.useEffect(() => {
-    loadStats()
+  // API hooks
+  const { data: suggestionsData, isLoading, refetch } = useAISuggestions(filters)
+  const submitReview = useSubmitAIReview()
+  const bulkOperation = useBulkAIOperation()
+
+  const suggestions = suggestionsData?.suggestions || []
+  const pagination = suggestionsData?.pagination || {}
+  const stats = suggestionsData?.stats || null
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle shortcuts when not in input fields
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      switch (event.key) {
+        case 'r':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault()
+            refetch()
+          }
+          break
+        case 'a':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault()
+            handleSelectAll()
+          }
+          break
+        case 'Escape':
+          setSelectedSuggestions(new Set())
+          setShowBatchActions(false)
+          setShowQuickReview(false)
+          break
+        case '?':
+          setShowKeyboardShortcuts(true)
+          break
+        case '1':
+          if (selectedSuggestions.size > 0) {
+            handleBulkApprove()
+          }
+          break
+        case '2':
+          if (selectedSuggestions.size > 0) {
+            handleBulkReject()
+          }
+          break
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectedSuggestions, refetch])
+
+  // Selection handlers
+  const handleSelectSuggestion = useCallback((suggestionId: string, selected: boolean) => {
+    setSelectedSuggestions(prev => {
+      const newSet = new Set(prev)
+      if (selected) {
+        newSet.add(suggestionId)
+      } else {
+        newSet.delete(suggestionId)
+      }
+      setShowBatchActions(newSet.size > 0)
+      return newSet
+    })
   }, [])
 
-  const loadSuggestions = async () => {
-    try {
-      setLoading(true)
-      
-      const queryParams = new URLSearchParams()
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== '' && value !== undefined) {
-          queryParams.append(key, value.toString())
-        }
-      })
-      
-      const response = await apiService.get(`/ai/suggestions?${queryParams}`)
-      
-      if (response.status === 'success') {
-        setSuggestions(response.data.suggestions)
-      }
-      
-    } catch (error) {
-      console.error('Failed to load AI suggestions:', error)
-    } finally {
-      setLoading(false)
+  const handleSelectAll = useCallback(() => {
+    if (selectedSuggestions.size === suggestions.length) {
+      setSelectedSuggestions(new Set())
+      setShowBatchActions(false)
+    } else {
+      const allIds = new Set(suggestions.map(s => s._id))
+      setSelectedSuggestions(allIds)
+      setShowBatchActions(true)
     }
-  }
+  }, [suggestions, selectedSuggestions.size])
 
-  const loadStats = async () => {
+  // Batch operations
+  const handleBulkApprove = useCallback(async () => {
     try {
-      const response = await apiService.get('/ai/analytics')
-      if (response.status === 'success') {
-        setStats(response.data)
-      }
+      await bulkOperation.mutateAsync({
+        suggestionIds: Array.from(selectedSuggestions),
+        operation: 'approve'
+      })
+
+      toast.success(`Approved ${selectedSuggestions.size} suggestions`)
+      setSelectedSuggestions(new Set())
+      setShowBatchActions(false)
+      refetch()
     } catch (error) {
-      console.error('Failed to load AI stats:', error)
+      toast.error('Failed to approve suggestions')
     }
-  }
+  }, [selectedSuggestions, bulkOperation, refetch])
+
+  const handleBulkReject = useCallback(async () => {
+    try {
+      await bulkOperation.mutateAsync({
+        suggestionIds: Array.from(selectedSuggestions),
+        operation: 'reject'
+      })
+
+      toast.success(`Rejected ${selectedSuggestions.size} suggestions`)
+      setSelectedSuggestions(new Set())
+      setShowBatchActions(false)
+      refetch()
+    } catch (error) {
+      toast.error('Failed to reject suggestions')
+    }
+  }, [selectedSuggestions, bulkOperation, refetch])
+
+  const handleBulkEscalate = useCallback(async () => {
+    try {
+      await bulkOperation.mutateAsync({
+        suggestionIds: Array.from(selectedSuggestions),
+        operation: 'escalate'
+      })
+
+      toast.success(`Escalated ${selectedSuggestions.size} suggestions`)
+      setSelectedSuggestions(new Set())
+      setShowBatchActions(false)
+      refetch()
+    } catch (error) {
+      toast.error('Failed to escalate suggestions')
+    }
+  }, [selectedSuggestions, bulkOperation, refetch])
 
   // Search filters configuration
   const searchFilters = [
