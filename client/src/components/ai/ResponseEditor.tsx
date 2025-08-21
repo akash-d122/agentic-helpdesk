@@ -393,3 +393,270 @@ export default function ResponseEditor({
     </div>
   )
 }
+
+// Template Selector Component
+interface TemplateSelectorProps {
+  templates: Template[]
+  onSelect: (template: Template) => void
+  selectedTemplate: Template | null
+}
+
+function TemplateSelector({ templates, onSelect, selectedTemplate }: TemplateSelectorProps) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+
+  const categories = ['all', ...Array.from(new Set(templates.map(t => t.category)))]
+
+  const filteredTemplates = templates.filter(template => {
+    const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         template.content.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory
+
+    return matchesSearch && matchesCategory
+  })
+
+  return (
+    <div className="space-y-4">
+      {/* Search and Filter */}
+      <div className="flex space-x-4">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="Search templates..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="border border-secondary-300 rounded-lg px-3 py-2 text-sm"
+        >
+          {categories.map(category => (
+            <option key={category} value={category}>
+              {category === 'all' ? 'All Categories' : category}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Template List */}
+      <div className="space-y-3 max-h-96 overflow-y-auto">
+        {filteredTemplates.map(template => (
+          <div
+            key={template.id}
+            className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+              selectedTemplate?.id === template.id
+                ? 'border-primary-500 bg-primary-50'
+                : 'border-secondary-200 hover:border-secondary-300'
+            }`}
+            onClick={() => onSelect(template)}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <h4 className="font-medium text-secondary-900">{template.name}</h4>
+              <Badge variant="outline" size="sm">{template.category}</Badge>
+            </div>
+
+            <p className="text-sm text-secondary-600 mb-3 line-clamp-2">
+              {template.content.substring(0, 150)}...
+            </p>
+
+            {template.variables.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {template.variables.map(variable => (
+                  <Badge key={variable} variant="secondary" size="sm">
+                    {variable}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {filteredTemplates.length === 0 && (
+          <div className="text-center py-8 text-secondary-500">
+            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No templates found matching your criteria</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Response Preview Component
+interface ResponsePreviewProps {
+  content: string
+}
+
+function ResponsePreview({ content }: ResponsePreviewProps) {
+  return (
+    <div className="space-y-4">
+      <div className="bg-secondary-50 p-4 rounded-lg">
+        <h4 className="font-medium text-secondary-900 mb-2">Email Preview</h4>
+        <div className="bg-white border border-secondary-200 rounded-lg p-4">
+          <div className="border-b border-secondary-200 pb-3 mb-3">
+            <div className="text-sm text-secondary-600">
+              <div className="flex justify-between">
+                <span><strong>From:</strong> support@smarthelpdesk.com</span>
+                <span><strong>Date:</strong> {formatDate(new Date())}</span>
+              </div>
+              <div className="mt-1">
+                <strong>Subject:</strong> Re: Your Support Request
+              </div>
+            </div>
+          </div>
+
+          <div className="prose prose-sm max-w-none">
+            <div
+              className="whitespace-pre-wrap text-secondary-700"
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
+          </div>
+
+          <div className="border-t border-secondary-200 pt-3 mt-4 text-sm text-secondary-500">
+            <p>Best regards,<br />Smart Helpdesk Support Team</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-secondary-50 p-4 rounded-lg">
+        <h4 className="font-medium text-secondary-900 mb-2">In-App Preview</h4>
+        <div className="bg-white border border-secondary-200 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
+              <User className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center space-x-2 mb-2">
+                <span className="font-medium text-secondary-900">Support Agent</span>
+                <span className="text-xs text-secondary-500">{formatRelativeTime(new Date())}</span>
+              </div>
+              <div className="prose prose-sm max-w-none">
+                <div
+                  className="whitespace-pre-wrap text-secondary-700"
+                  dangerouslySetInnerHTML={{ __html: content }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Version History Component
+interface VersionHistoryProps {
+  versions: ResponseVersion[]
+  onRestore: (content: string) => void
+}
+
+function VersionHistory({ versions, onRestore }: VersionHistoryProps) {
+  const [selectedVersion, setSelectedVersion] = useState<ResponseVersion | null>(null)
+  const [showDiff, setShowDiff] = useState(false)
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-secondary-900">Version History</h4>
+        {selectedVersion && (
+          <div className="flex space-x-2">
+            <Button
+              onClick={() => setShowDiff(!showDiff)}
+              variant="outline"
+              size="sm"
+            >
+              {showDiff ? 'Hide' : 'Show'} Changes
+            </Button>
+            <Button
+              onClick={() => onRestore(selectedVersion.content)}
+              variant="outline"
+              size="sm"
+              icon={<RefreshCw className="h-4 w-4" />}
+            >
+              Restore
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3 max-h-96 overflow-y-auto">
+        {versions.map((version, index) => (
+          <div
+            key={version.id}
+            className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+              selectedVersion?.id === version.id
+                ? 'border-primary-500 bg-primary-50'
+                : 'border-secondary-200 hover:border-secondary-300'
+            }`}
+            onClick={() => setSelectedVersion(version)}
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <span className="font-medium text-secondary-900">
+                  Version {versions.length - index}
+                </span>
+                {version.approved && (
+                  <Badge variant="success" size="sm">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Approved
+                  </Badge>
+                )}
+              </div>
+              <span className="text-xs text-secondary-500">
+                {formatRelativeTime(version.timestamp)}
+              </span>
+            </div>
+
+            <div className="text-sm text-secondary-600 mb-2">
+              <span>By {version.author.name}</span>
+              {version.approvedBy && (
+                <span> • Approved by {version.approvedBy.name}</span>
+              )}
+            </div>
+
+            {version.changes.length > 0 && (
+              <div className="text-xs text-secondary-500">
+                <span className="font-medium">Changes:</span>
+                <ul className="list-disc list-inside mt-1">
+                  {version.changes.map((change, changeIndex) => (
+                    <li key={changeIndex}>{change}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {versions.length === 0 && (
+          <div className="text-center py-8 text-secondary-500">
+            <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No version history available</p>
+          </div>
+        )}
+      </div>
+
+      {/* Diff View */}
+      {showDiff && selectedVersion && versions.length > 1 && (
+        <div className="border-t border-secondary-200 pt-4">
+          <h5 className="font-medium text-secondary-900 mb-3">Changes in this version</h5>
+          <div className="bg-secondary-50 p-4 rounded-lg">
+            <div className="text-sm text-secondary-600">
+              {/* Simple diff display - in a real implementation, you'd use a proper diff library */}
+              <div className="space-y-2">
+                {selectedVersion.changes.map((change, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <span className="text-success-600">+</span>
+                    <span>{change}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
