@@ -155,6 +155,15 @@ const startServer = async () => {
         logger.info('HTTP server closed');
         
         try {
+          // Shutdown AI services
+          try {
+            const aiAgentService = require('./services/ai');
+            await aiAgentService.shutdown();
+            logger.info('AI services shutdown complete');
+          } catch (error) {
+            logger.warn('AI services shutdown error:', error);
+          }
+
           await database.disconnect();
           logger.info('Database connection closed');
           process.exit(0);
