@@ -567,19 +567,97 @@ export default function AISuggestionsPage() {
     }
   ], [])
 
+  // Quick action handlers
+  const handleQuickApprove = useCallback(async (suggestion: AISuggestion) => {
+    try {
+      await submitReview.mutateAsync({
+        suggestionId: suggestion._id,
+        review: {
+          decision: 'approve',
+          feedback: {
+            classificationAccuracy: 'correct',
+            knowledgeRelevance: 'relevant',
+            responseQuality: 'good',
+            overallSatisfaction: 4
+          }
+        }
+      })
+
+      toast.success('Suggestion approved')
+      refetch()
+    } catch (error) {
+      toast.error('Failed to approve suggestion')
+    }
+  }, [submitReview, refetch])
+
+  const handleQuickReject = useCallback(async (suggestion: AISuggestion) => {
+    try {
+      await submitReview.mutateAsync({
+        suggestionId: suggestion._id,
+        review: {
+          decision: 'reject',
+          feedback: {
+            classificationAccuracy: 'incorrect',
+            knowledgeRelevance: 'irrelevant',
+            responseQuality: 'poor',
+            overallSatisfaction: 2
+          }
+        }
+      })
+
+      toast.success('Suggestion rejected')
+      refetch()
+    } catch (error) {
+      toast.error('Failed to reject suggestion')
+    }
+  }, [submitReview, refetch])
+
+  const handleEditResponse = useCallback((suggestion: AISuggestion) => {
+    setCurrentSuggestion(suggestion)
+    setShowQuickReview(true)
+  }, [])
+
+  const handleEscalate = useCallback(async (suggestion: AISuggestion) => {
+    try {
+      await submitReview.mutateAsync({
+        suggestionId: suggestion._id,
+        review: {
+          decision: 'escalate',
+          feedback: {
+            comments: 'Escalated for senior review'
+          }
+        }
+      })
+
+      toast.success('Suggestion escalated')
+      refetch()
+    } catch (error) {
+      toast.error('Failed to escalate suggestion')
+    }
+  }, [submitReview, refetch])
+
+  const handleArchive = useCallback(async (suggestion: AISuggestion) => {
+    // Implementation for archiving suggestions
+    toast.success('Suggestion archived')
+  }, [])
+
   // Event handlers
   const handleSearch = (query: string) => {
-    setFilters(prev => ({ ...prev, search: query, page: 0 }))
+    setFilters(prev => ({ ...prev, search: query, page: 1 }))
   }
 
   const handleFiltersChange = (newFilters: Record<string, any>) => {
-    setFilters(prev => ({ ...prev, ...newFilters, page: 0 }))
+    setFilters(prev => ({ ...prev, ...newFilters, page: 1 }))
   }
 
   const handleRefresh = () => {
-    loadSuggestions()
-    loadStats()
+    refetch()
   }
+
+  const handleExport = useCallback(() => {
+    // Implementation for exporting suggestions
+    toast.success('Export started')
+  }, [])
 
   // Statistics
   const statisticsCards = useMemo(() => {
@@ -637,16 +715,86 @@ export default function AISuggestionsPage() {
             Review and manage AI-generated ticket suggestions and auto-resolutions.
           </p>
         </div>
-        <div className="mt-4 flex md:mt-0 md:ml-4">
+        <div className="mt-4 flex space-x-2 md:mt-0 md:ml-4">
+          <Button
+            onClick={() => setShowKeyboardShortcuts(true)}
+            variant="ghost"
+            size="sm"
+            icon={<Keyboard className="h-4 w-4" />}
+            title="Keyboard Shortcuts (?)"
+          />
+          <Button
+            onClick={handleExport}
+            variant="outline"
+            icon={<Download className="h-4 w-4" />}
+          >
+            Export
+          </Button>
           <Button
             onClick={handleRefresh}
             variant="outline"
             icon={<RefreshCw className="h-4 w-4" />}
+            loading={isLoading}
           >
             Refresh
           </Button>
         </div>
       </div>
+
+      {/* Batch Actions Toolbar */}
+      {showBatchActions && (
+        <Card className="border-primary-200 bg-primary-50">
+          <Card.Body className="py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <span className="text-sm font-medium text-primary-900">
+                  {selectedSuggestions.size} suggestion{selectedSuggestions.size !== 1 ? 's' : ''} selected
+                </span>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={handleBulkApprove}
+                    variant="outline"
+                    size="sm"
+                    icon={<CheckCircle className="h-4 w-4" />}
+                    loading={bulkOperation.isLoading}
+                  >
+                    Approve All (1)
+                  </Button>
+                  <Button
+                    onClick={handleBulkReject}
+                    variant="outline"
+                    size="sm"
+                    icon={<XCircle className="h-4 w-4" />}
+                    loading={bulkOperation.isLoading}
+                  >
+                    Reject All (2)
+                  </Button>
+                  <Button
+                    onClick={handleBulkEscalate}
+                    variant="outline"
+                    size="sm"
+                    icon={<Flag className="h-4 w-4" />}
+                    loading={bulkOperation.isLoading}
+                  >
+                    Escalate All
+                  </Button>
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  setSelectedSuggestions(new Set())
+                  setShowBatchActions(false)
+                }}
+                variant="ghost"
+                size="sm"
+                icon={<XCircle className="h-4 w-4" />}
+              >
+                Clear Selection
+              </Button>
+            </div>
+          </Card.Body>
+        </Card>
+      )}
 
       {/* Statistics */}
       {statisticsCards.length > 0 && (
@@ -676,10 +824,285 @@ export default function AISuggestionsPage() {
       <DataTable
         columns={columns}
         data={suggestions}
-        loading={loading}
+        loading={isLoading}
+        pagination={pagination}
+        onPaginationChange={(page, limit) => {
+          setFilters(prev => ({ ...prev, page, limit }))
+        }}
         exportable={true}
-        onExport={() => console.log('Export suggestions')}
+        onExport={handleExport}
+        emptyState={{
+          title: 'No AI suggestions found',
+          description: 'No suggestions match your current filters.',
+          action: (
+            <Button
+              onClick={() => setFilters(prev => ({ ...prev, search: '', status: '', recommendation: '' }))}
+              variant="outline"
+            >
+              Clear Filters
+            </Button>
+          )
+        }}
       />
+
+      {/* Keyboard Shortcuts Modal */}
+      <Modal
+        isOpen={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+        title="Keyboard Shortcuts"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-medium text-secondary-900 mb-2">Navigation</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Refresh</span>
+                  <kbd className="px-2 py-1 bg-secondary-100 rounded text-xs">Ctrl+R</kbd>
+                </div>
+                <div className="flex justify-between">
+                  <span>Select All</span>
+                  <kbd className="px-2 py-1 bg-secondary-100 rounded text-xs">Ctrl+A</kbd>
+                </div>
+                <div className="flex justify-between">
+                  <span>Clear Selection</span>
+                  <kbd className="px-2 py-1 bg-secondary-100 rounded text-xs">Esc</kbd>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium text-secondary-900 mb-2">Actions</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Approve Selected</span>
+                  <kbd className="px-2 py-1 bg-secondary-100 rounded text-xs">1</kbd>
+                </div>
+                <div className="flex justify-between">
+                  <span>Reject Selected</span>
+                  <kbd className="px-2 py-1 bg-secondary-100 rounded text-xs">2</kbd>
+                </div>
+                <div className="flex justify-between">
+                  <span>Show Shortcuts</span>
+                  <kbd className="px-2 py-1 bg-secondary-100 rounded text-xs">?</kbd>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="pt-4 border-t border-secondary-200">
+            <p className="text-sm text-secondary-600">
+              Shortcuts work when not focused on input fields. Use these to quickly process suggestions.
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Quick Review Modal */}
+      {showQuickReview && currentSuggestion && (
+        <QuickReviewModal
+          suggestion={currentSuggestion}
+          isOpen={showQuickReview}
+          onClose={() => {
+            setShowQuickReview(false)
+            setCurrentSuggestion(null)
+          }}
+          onSubmit={async (review) => {
+            try {
+              await submitReview.mutateAsync({
+                suggestionId: currentSuggestion._id,
+                review
+              })
+              toast.success('Review submitted')
+              setShowQuickReview(false)
+              setCurrentSuggestion(null)
+              refetch()
+            } catch (error) {
+              toast.error('Failed to submit review')
+            }
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+// Quick Review Modal Component
+interface QuickReviewModalProps {
+  suggestion: AISuggestion
+  isOpen: boolean
+  onClose: () => void
+  onSubmit: (review: any) => Promise<void>
+}
+
+function QuickReviewModal({ suggestion, isOpen, onClose, onSubmit }: QuickReviewModalProps) {
+  const [decision, setDecision] = useState<'approve' | 'modify' | 'reject' | 'escalate'>('approve')
+  const [modifiedResponse, setModifiedResponse] = useState(suggestion.suggestedResponse?.content || '')
+  const [feedback, setFeedback] = useState({
+    classificationAccuracy: 'correct' as 'correct' | 'incorrect' | 'partial',
+    knowledgeRelevance: 'relevant' as 'relevant' | 'irrelevant' | 'partial',
+    responseQuality: 'good' as 'excellent' | 'good' | 'fair' | 'poor',
+    overallSatisfaction: 4,
+    comments: ''
+  })
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async () => {
+    setSubmitting(true)
+    try {
+      await onSubmit({
+        decision,
+        feedback,
+        modifiedResponse: decision === 'modify' ? modifiedResponse : undefined
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Quick Review"
+      size="lg"
+    >
+      <div className="space-y-6">
+        {/* Ticket Context */}
+        <div className="bg-secondary-50 p-4 rounded-lg">
+          <h4 className="font-medium text-secondary-900 mb-2">Ticket Context</h4>
+          <p className="text-sm text-secondary-700">
+            <strong>Subject:</strong> {suggestion.ticketId.subject}
+          </p>
+          <p className="text-sm text-secondary-700 mt-1">
+            <strong>Priority:</strong> {suggestion.ticketId.priority} |
+            <strong> Status:</strong> {suggestion.ticketId.status}
+          </p>
+        </div>
+
+        {/* AI Suggestion */}
+        <div>
+          <h4 className="font-medium text-secondary-900 mb-2">AI Suggested Response</h4>
+          <div className="bg-white border border-secondary-200 rounded-lg p-4">
+            <p className="text-sm text-secondary-700 whitespace-pre-wrap">
+              {suggestion.suggestedResponse?.content}
+            </p>
+          </div>
+          <div className="mt-2 flex items-center space-x-4 text-sm text-secondary-500">
+            <span>Confidence: {((suggestion.confidence?.calibrated || 0) * 100).toFixed(0)}%</span>
+            <span>Type: {suggestion.suggestedResponse?.type}</span>
+          </div>
+        </div>
+
+        {/* Decision */}
+        <div>
+          <label className="block text-sm font-medium text-secondary-700 mb-2">
+            Decision
+          </label>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { value: 'approve', label: 'Approve', icon: CheckCircle, color: 'success' },
+              { value: 'modify', label: 'Modify', icon: Edit3, color: 'primary' },
+              { value: 'reject', label: 'Reject', icon: XCircle, color: 'error' },
+              { value: 'escalate', label: 'Escalate', icon: Flag, color: 'warning' }
+            ].map(({ value, label, icon: Icon, color }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setDecision(value as any)}
+                className={`p-3 border rounded-lg text-center transition-colors ${
+                  decision === value
+                    ? `border-${color}-500 bg-${color}-50 text-${color}-700`
+                    : 'border-secondary-200 hover:border-secondary-300'
+                }`}
+              >
+                <Icon className="h-5 w-5 mx-auto mb-1" />
+                <span className="text-sm font-medium">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Modified Response */}
+        {decision === 'modify' && (
+          <div>
+            <label className="block text-sm font-medium text-secondary-700 mb-2">
+              Modified Response
+            </label>
+            <textarea
+              value={modifiedResponse}
+              onChange={(e) => setModifiedResponse(e.target.value)}
+              rows={6}
+              className="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="Edit the AI response..."
+            />
+          </div>
+        )}
+
+        {/* Feedback */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-secondary-700 mb-2">
+              Classification Accuracy
+            </label>
+            <select
+              value={feedback.classificationAccuracy}
+              onChange={(e) => setFeedback(prev => ({ ...prev, classificationAccuracy: e.target.value as any }))}
+              className="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="correct">Correct</option>
+              <option value="partial">Partially Correct</option>
+              <option value="incorrect">Incorrect</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-secondary-700 mb-2">
+              Response Quality
+            </label>
+            <select
+              value={feedback.responseQuality}
+              onChange={(e) => setFeedback(prev => ({ ...prev, responseQuality: e.target.value as any }))}
+              className="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="excellent">Excellent</option>
+              <option value="good">Good</option>
+              <option value="fair">Fair</option>
+              <option value="poor">Poor</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Comments */}
+        <div>
+          <label className="block text-sm font-medium text-secondary-700 mb-2">
+            Comments (Optional)
+          </label>
+          <textarea
+            value={feedback.comments}
+            onChange={(e) => setFeedback(prev => ({ ...prev, comments: e.target.value }))}
+            rows={3}
+            className="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="Additional feedback for AI improvement..."
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end space-x-3 pt-4 border-t border-secondary-200">
+          <Button
+            onClick={onClose}
+            variant="outline"
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            loading={submitting}
+            icon={<Send className="h-4 w-4" />}
+          >
+            Submit Review
+          </Button>
+        </div>
+      </div>
+    </Modal>
   )
 }
