@@ -475,33 +475,95 @@ export default function AISuggestionsPage() {
       header: 'Actions',
       cell: ({ row }) => {
         const suggestion = row.original
-        
+        const canReview = suggestion.status === 'completed' && !suggestion.humanReview
+
         return (
-          <div className="flex space-x-2">
-            <Button
-              as={Link}
-              to={`/ai/suggestions/${suggestion._id}`}
-              variant="ghost"
-              size="sm"
-              icon={<Eye className="h-4 w-4" />}
-            >
-              View
-            </Button>
-            
-            {suggestion.status === 'completed' && !suggestion.humanReview && (
+          <div className="flex items-center space-x-1">
+            {/* Quick Actions */}
+            {canReview && (
+              <>
+                <Tooltip content="Quick Approve (1)">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleQuickApprove(suggestion)}
+                    className="text-success-600 hover:text-success-700 hover:bg-success-50"
+                    icon={<CheckCircle className="h-4 w-4" />}
+                  />
+                </Tooltip>
+
+                <Tooltip content="Quick Reject (2)">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleQuickReject(suggestion)}
+                    className="text-error-600 hover:text-error-700 hover:bg-error-50"
+                    icon={<XCircle className="h-4 w-4" />}
+                  />
+                </Tooltip>
+
+                <Tooltip content="Edit Response">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditResponse(suggestion)}
+                    className="text-primary-600 hover:text-primary-700 hover:bg-primary-50"
+                    icon={<Edit3 className="h-4 w-4" />}
+                  />
+                </Tooltip>
+              </>
+            )}
+
+            {/* View Details */}
+            <Tooltip content="View Details">
               <Button
                 as={Link}
-                to={`/ai/suggestions/${suggestion._id}/review`}
-                variant="outline"
+                to={`/ai/suggestions/${suggestion._id}`}
+                variant="ghost"
                 size="sm"
-                icon={<Brain className="h-4 w-4" />}
-              >
-                Review
-              </Button>
-            )}
+                icon={<Eye className="h-4 w-4" />}
+              />
+            </Tooltip>
+
+            {/* More Actions */}
+            <Dropdown
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<MoreHorizontal className="h-4 w-4" />}
+                />
+              }
+              items={[
+                {
+                  label: 'Full Review',
+                  icon: <Brain className="h-4 w-4" />,
+                  onClick: () => window.open(`/ai/suggestions/${suggestion._id}/review`, '_blank'),
+                  disabled: !canReview
+                },
+                {
+                  label: 'View Ticket',
+                  icon: <FileText className="h-4 w-4" />,
+                  onClick: () => window.open(`/tickets/${suggestion.ticketId._id}`, '_blank')
+                },
+                {
+                  label: 'Escalate',
+                  icon: <Flag className="h-4 w-4" />,
+                  onClick: () => handleEscalate(suggestion),
+                  disabled: !canReview
+                },
+                {
+                  label: 'Archive',
+                  icon: <Archive className="h-4 w-4" />,
+                  onClick: () => handleArchive(suggestion)
+                }
+              ]}
+            />
           </div>
         )
-      }
+      },
+      enableSorting: false,
+      size: 200
     }
   ], [])
 
