@@ -54,6 +54,13 @@ export function usePermissions() {
         canAccessAdminPanel: false,
         canViewAuditLogs: false,
         canManageSystem: false,
+
+        // AI permissions
+        canViewAISuggestions: false,
+        canReviewAISuggestions: false,
+        canManageAI: false,
+        canConfigureAI: false,
+        canViewAIAnalytics: false,
         
         // Helper functions
         hasRole: (roles: UserRole[]) => false,
@@ -107,7 +114,14 @@ export function usePermissions() {
       canAccessAdminPanel: isAdmin, // Only admins can access admin panel
       canViewAuditLogs: isAdmin, // Only admins can view audit logs
       canManageSystem: isAdmin, // Only admins can manage system settings
-      
+
+      // AI permissions
+      canViewAISuggestions: isAdmin || isAgent, // Admins and agents can view AI suggestions
+      canReviewAISuggestions: isAdmin || isAgent, // Admins and agents can review AI suggestions
+      canManageAI: isAdmin, // Only admins can manage AI settings
+      canConfigureAI: isAdmin, // Only admins can configure AI
+      canViewAIAnalytics: isAdmin, // Only admins can view AI analytics
+
       // Helper functions
       hasRole: (roles: UserRole[]) => hasRole(user, roles),
       hasPermission: (permission: string) => hasPermission(user, permission),
@@ -185,7 +199,7 @@ export function useArticlePermissions() {
  */
 export function useUserManagementPermissions() {
   const permissions = usePermissions()
-  
+
   return {
     canCreate: permissions.canCreateUsers,
     canEdit: permissions.canEditUsers,
@@ -193,6 +207,21 @@ export function useUserManagementPermissions() {
     canChangeRoles: permissions.canChangeUserRoles,
     canViewStatistics: permissions.canViewUserStatistics,
     canView: permissions.canViewUsers,
+  }
+}
+
+/**
+ * Hook for checking if user can perform AI operations
+ */
+export function useAIPermissions() {
+  const permissions = usePermissions()
+
+  return {
+    canView: permissions.canViewAISuggestions,
+    canReview: permissions.canReviewAISuggestions,
+    canManage: permissions.canManageAI,
+    canConfigure: permissions.canConfigureAI,
+    canViewAnalytics: permissions.canViewAIAnalytics,
   }
 }
 

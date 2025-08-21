@@ -19,7 +19,7 @@ const configSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['ai', 'security', 'performance', 'ui', 'notification', 'sla', 'general'],
+    enum: ['ai', 'ai_agent', 'security', 'performance', 'ui', 'notification', 'sla', 'general'],
     required: [true, 'Config category is required']
   },
   description: {

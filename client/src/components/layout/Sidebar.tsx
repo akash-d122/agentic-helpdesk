@@ -67,6 +67,18 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       icon: BarChart3,
       permission: 'canViewUserStatistics',
     },
+    {
+      name: 'AI Suggestions',
+      href: '/ai/suggestions',
+      icon: Brain,
+      permission: 'canViewAISuggestions',
+    },
+    {
+      name: 'AI Config',
+      href: '/admin/ai-config',
+      icon: Zap,
+      permission: 'canManageAI',
+    },
   ]
 
   const secondaryNavigation = [
