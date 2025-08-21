@@ -15,6 +15,8 @@ const UsersPage = lazy(() => import('@pages/admin/UsersPage'))
 const ArticlesPage = lazy(() => import('@pages/ArticlesPage'))
 const TicketsPage = lazy(() => import('@pages/TicketsPage'))
 const ProfilePage = lazy(() => import('@pages/ProfilePage'))
+const AIConfigPage = lazy(() => import('@pages/admin/AIConfigPage'))
+const AISuggestionsPage = lazy(() => import('@pages/ai/AISuggestionsPage'))
 const NotFoundPage = lazy(() => import('@pages/NotFoundPage'))
 
 // Loading component for Suspense
@@ -70,6 +72,24 @@ function App() {
               element={
                 <ProtectedRoute roles={['admin']}>
                   <UsersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/ai-config"
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <AIConfigPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* AI routes */}
+            <Route
+              path="ai/suggestions/*"
+              element={
+                <ProtectedRoute roles={['admin', 'agent']}>
+                  <AISuggestionsPage />
                 </ProtectedRoute>
               }
             />

@@ -1,15 +1,17 @@
 import React, { Fragment } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Dialog, Transition } from '@headlessui/react'
-import { 
-  X, 
-  Home, 
-  Ticket, 
-  BookOpen, 
-  Users, 
+import {
+  X,
+  Home,
+  Ticket,
+  BookOpen,
+  Users,
   BarChart3,
   Settings,
-  HelpCircle
+  HelpCircle,
+  Brain,
+  Zap
 } from 'lucide-react'
 
 import { useAuth } from '@hooks/useAuth'
