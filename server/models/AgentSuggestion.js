@@ -1,38 +1,137 @@
 const mongoose = require('mongoose');
 
 const agentSuggestionSchema = new mongoose.Schema({
-  ticket: {
+  // Reference to the ticket
+  ticketId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Ticket',
-    required: [true, 'Ticket reference is required']
+    required: true,
+    index: true
+  },
+
+  // Legacy support
+  ticket: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Ticket'
   },
   traceId: {
     type: String,
-    required: [true, 'Trace ID is required'],
     index: true
   },
   type: {
     type: String,
-    enum: ['classification', 'response', 'resolution', 'escalation'],
-    required: [true, 'Suggestion type is required']
+    enum: ['classification', 'response', 'resolution', 'escalation', 'full_processing'],
+    default: 'full_processing'
   },
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected', 'modified', 'auto_applied'],
+    enum: ['pending', 'processing', 'completed', 'failed', 'reviewed', 'approved', 'rejected', 'modified', 'auto_applied'],
     default: 'pending',
-    required: true
+    required: true,
+    index: true
   },
   aiProvider: {
     type: String,
-    enum: ['openai', 'anthropic', 'deterministic', 'custom'],
-    required: [true, 'AI provider is required']
+    enum: ['openai', 'anthropic', 'deterministic', 'custom', 'hybrid'],
+    default: 'hybrid'
   },
+  // AI Processing Results
+  classification: {
+    category: {
+      category: String,
+      confidence: Number,
+      matches: [String]
+    },
+    priority: {
+      priority: String,
+      confidence: Number,
+      reasoning: [String],
+      urgencyScore: Number,
+      sentiment: Number
+    },
+    routing: {
+      suggestedAgents: [String],
+      department: String,
+      escalationLevel: String,
+      reasoning: [String]
+    },
+    duplicates: [{
+      ticketId: String,
+      similarity: Number,
+      reason: String
+    }],
+    metadata: {
+      wordCount: Number,
+      hasAttachments: Boolean,
+      language: String,
+      entities: [String],
+      keywords: [String]
+    }
+  },
+
+  // Knowledge Base Matches
+  knowledgeMatches: [{
+    id: String,
+    title: String,
+    summary: String,
+    category: String,
+    tags: [String],
+    score: Number,
+    source: String,
+    url: String,
+    helpfulnessRatio: Number,
+    viewCount: Number
+  }],
+
+  // Generated Response
+  suggestedResponse: {
+    content: String,
+    type: {
+      type: String,
+      enum: ['template', 'llm', 'hybrid', 'fallback'],
+      default: 'template'
+    },
+    confidence: Number,
+    source: String,
+    metadata: {
+      template: String,
+      knowledgeUsed: Number,
+      generationTime: Number,
+      error: String
+    }
+  },
+
+  // Confidence Assessment
   confidence: {
-    type: Number,
-    required: [true, 'Confidence score is required'],
-    min: 0,
-    max: 1
+    overall: Number,
+    components: {
+      classification: Number,
+      knowledgeSearch: Number,
+      responseGeneration: Number,
+      contextual: Number
+    },
+    factors: {
+      dataQuality: Number,
+      historicalPerformance: Number,
+      complexity: Number,
+      coverage: Number
+    },
+    calibrated: Number,
+    recommendation: {
+      type: String,
+      enum: ['auto_resolve', 'agent_review', 'human_review', 'escalate'],
+      default: 'human_review'
+    }
   },
+
+  // Auto-Resolution Decision
+  autoResolve: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  autoResolveReason: String,
+
   originalData: {
     // Store the original ticket data that was processed
     subject: String,
