@@ -39,6 +39,7 @@ const userRoutes = require('./routes/users');
 const articleRoutes = require('./routes/articles');
 const ticketRoutes = require('./routes/tickets');
 const auditRoutes = require('./routes/audit');
+const aiRoutes = require('./routes/ai');
 
 // Create Express app
 const app = express();
@@ -86,6 +87,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/ai', aiRoutes);
 
 // API base route
 app.get('/api', (req, res) => {
@@ -119,7 +121,21 @@ const startServer = async () => {
     
     // Seed database with initial data
     await database.seedDatabase();
-    
+
+    // Initialize AI services
+    try {
+      const aiAgentService = require('./services/ai');
+      const autoResolutionWorkflow = require('./services/ai/workflow/AutoResolutionWorkflow');
+
+      await aiAgentService.initialize();
+      await autoResolutionWorkflow.initialize();
+
+      logger.info('AI services initialized successfully');
+    } catch (error) {
+      logger.warn('AI services initialization failed:', error);
+      // Continue without AI services - they can be initialized later
+    }
+
     // Start server
     const PORT = process.env.PORT || 5000;
     const server = app.listen(PORT, () => {
