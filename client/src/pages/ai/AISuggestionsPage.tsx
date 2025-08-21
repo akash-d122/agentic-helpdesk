@@ -285,20 +285,66 @@ export default function AISuggestionsPage() {
   // Table columns
   const columns = useMemo<ColumnDef<AISuggestion>[]>(() => [
     {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          indeterminate={table.getIsSomePageRowsSelected()}
+          onChange={(checked) => {
+            table.toggleAllPageRowsSelected(!!checked)
+            if (checked) {
+              const allIds = new Set(suggestions.map(s => s._id))
+              setSelectedSuggestions(allIds)
+              setShowBatchActions(true)
+            } else {
+              setSelectedSuggestions(new Set())
+              setShowBatchActions(false)
+            }
+          }}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={selectedSuggestions.has(row.original._id)}
+          onChange={(checked) => handleSelectSuggestion(row.original._id, checked)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+      size: 40
+    },
+    {
       accessorKey: 'ticketId',
       header: 'Ticket',
       cell: ({ row }) => {
         const ticket = row.original.ticketId
+        const suggestion = row.original
+
         return (
           <div className="min-w-0">
-            <Link
-              to={`/tickets/${ticket._id}`}
-              className="text-sm font-medium text-secondary-900 hover:text-primary-600 truncate block"
-            >
-              #{ticket._id.slice(-6)} - {ticket.subject}
-            </Link>
-            <div className="text-xs text-secondary-500 mt-1">
-              {formatRelativeTime(ticket.createdAt)}
+            <div className="flex items-center space-x-2">
+              <Link
+                to={`/tickets/${ticket._id}`}
+                className="text-sm font-medium text-secondary-900 hover:text-primary-600 truncate block"
+              >
+                #{ticket._id.slice(-6)} - {ticket.subject}
+              </Link>
+              {suggestion.autoResolve && (
+                <Badge variant="success" size="sm">
+                  <Zap className="h-3 w-3 mr-1" />
+                  Auto
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center space-x-2 mt-1">
+              <span className="text-xs text-secondary-500">
+                {formatRelativeTime(ticket.createdAt)}
+              </span>
+              <Badge variant="outline" size="sm">
+                {ticket.priority}
+              </Badge>
             </div>
           </div>
         )
