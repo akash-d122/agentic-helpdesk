@@ -1,0 +1,720 @@
+openapi: 3.0.3
+info:
+  title: Smart Helpdesk API
+  description: |
+    Comprehensive API documentation for the Smart Helpdesk system.
+    
+    This API provides endpoints for:
+    - User authentication and management
+    - Ticket creation and management
+    - Knowledge base operations
+    - AI-powered suggestions and automation
+    - Administrative functions
+    
+    ## Authentication
+    
+    The API uses JWT (JSON Web Tokens) for authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <your-jwt-token>
+    ```
+    
+    ## Rate Limiting
+    
+    API requests are rate limited:
+    - General endpoints: 1000 requests per 15 minutes
+    - Authentication endpoints: 5 requests per 15 minutes
+    - Upload endpoints: 10 requests per minute
+    
+    ## Error Handling
+    
+    All API responses follow a consistent format:
+    ```json
+    {
+      "success": true|false,
+      "data": {...},
+      "error": "Error message",
+      "errorCode": "ERROR_CODE",
+      "timestamp": "2024-01-01T00:00:00.000Z"
+    }
+    ```
+    
+  version: 1.0.0
+  contact:
+    name: Smart Helpdesk Support
+    email: support@smarthelpdesk.com
+    url: https://smarthelpdesk.com/support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.smarthelpdesk.com
+    description: Production server
+  - url: https://staging-api.smarthelpdesk.com
+    description: Staging server
+  - url: http://localhost:3001
+    description: Development server
+
+paths:
+  # Authentication Endpoints
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - firstName
+                - lastName
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  minLength: 8
+                  example: SecurePassword123!
+                firstName:
+                  type: string
+                  example: John
+                lastName:
+                  type: string
+                  example: Doe
+                role:
+                  type: string
+                  enum: [customer, agent, admin]
+                  default: customer
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and return JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Ticket Endpoints
+  /api/tickets:
+    get:
+      tags:
+        - Tickets
+      summary: Get tickets
+      description: Retrieve tickets with filtering and pagination
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, in_progress, resolved, closed]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, urgent]
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: assignee
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      tickets:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Ticket'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Tickets
+      summary: Create a new ticket
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTicketRequest'
+      responses:
+        '201':
+          description: Ticket created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      ticket:
+                        $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tickets/{id}:
+    get:
+      tags:
+        - Tickets
+      summary: Get ticket by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ticket retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      ticket:
+                        $ref: '#/components/schemas/Ticket'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Tickets
+      summary: Update ticket
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTicketRequest'
+      responses:
+        '200':
+          description: Ticket updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      ticket:
+                        $ref: '#/components/schemas/Ticket'
+
+  # AI Endpoints
+  /api/ai/suggestions:
+    get:
+      tags:
+        - AI
+      summary: Get AI suggestions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending_review, approved, rejected, modified]
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [classification, response, routing]
+        - name: confidence
+          in: query
+          schema:
+            type: number
+            minimum: 0
+            maximum: 1
+      responses:
+        '200':
+          description: AI suggestions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      suggestions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AISuggestion'
+
+  /api/ai/suggestions/{id}/review:
+    post:
+      tags:
+        - AI
+      summary: Review AI suggestion
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewSuggestionRequest'
+      responses:
+        '200':
+          description: Suggestion reviewed successfully
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [customer, agent, admin]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Ticket:
+      type: object
+      properties:
+        _id:
+          type: string
+        subject:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        category:
+          type: string
+        requester:
+          $ref: '#/components/schemas/User'
+        assignee:
+          $ref: '#/components/schemas/User'
+        tags:
+          type: array
+          items:
+            type: string
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Comment:
+      type: object
+      properties:
+        _id:
+          type: string
+        content:
+          type: string
+        author:
+          $ref: '#/components/schemas/User'
+        isInternal:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Attachment:
+      type: object
+      properties:
+        _id:
+          type: string
+        filename:
+          type: string
+        originalName:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+        url:
+          type: string
+        uploadedBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AISuggestion:
+      type: object
+      properties:
+        _id:
+          type: string
+        ticketId:
+          type: string
+        type:
+          type: string
+          enum: [classification, response, routing]
+        status:
+          type: string
+          enum: [pending_review, approved, rejected, modified]
+        classification:
+          type: object
+          properties:
+            category:
+              type: object
+              properties:
+                category:
+                  type: string
+                confidence:
+                  type: number
+            priority:
+              type: object
+              properties:
+                priority:
+                  type: string
+                confidence:
+                  type: number
+        suggestedResponse:
+          type: object
+          properties:
+            content:
+              type: string
+            type:
+              type: string
+            confidence:
+              type: number
+        confidence:
+          type: object
+          properties:
+            overall:
+              type: number
+            calibrated:
+              type: number
+        knowledgeMatches:
+          type: array
+          items:
+            type: object
+        processingTime:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateTicketRequest:
+      type: object
+      required:
+        - subject
+        - description
+      properties:
+        subject:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          default: medium
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    UpdateTicketRequest:
+      type: object
+      properties:
+        subject:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        assignee:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    ReviewSuggestionRequest:
+      type: object
+      required:
+        - decision
+      properties:
+        decision:
+          type: string
+          enum: [approve, reject, modify, escalate]
+        modifiedResponse:
+          type: string
+        feedback:
+          type: object
+          properties:
+            classificationAccuracy:
+              type: string
+              enum: [correct, partial, incorrect]
+            responseQuality:
+              type: string
+              enum: [excellent, good, fair, poor]
+            overallSatisfaction:
+              type: integer
+              minimum: 1
+              maximum: 5
+            comments:
+              type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            token:
+              type: string
+            refreshToken:
+              type: string
+            expiresIn:
+              type: integer
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        pages:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        errorCode:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Validation failed"
+            errorCode: "VALIDATION_ERROR"
+            timestamp: "2024-01-01T00:00:00.000Z"
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Authentication required"
+            errorCode: "UNAUTHORIZED"
+            timestamp: "2024-01-01T00:00:00.000Z"
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
