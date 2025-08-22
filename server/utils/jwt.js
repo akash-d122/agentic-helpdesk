@@ -5,17 +5,26 @@ const winston = require('winston');
 class JWTService {
   constructor() {
     this.accessTokenSecret = process.env.JWT_SECRET;
-    this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET;
+    this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
     this.accessTokenExpiry = process.env.JWT_EXPIRES_IN || '15m';
     this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
-    
-    if (!this.accessTokenSecret || !this.refreshTokenSecret) {
-      throw new Error('JWT secrets must be defined in environment variables');
+
+    // Only throw error when actually using the service, not during module loading
+    this.initialized = false;
+  }
+
+  _ensureInitialized() {
+    if (!this.initialized) {
+      if (!this.accessTokenSecret) {
+        throw new Error('JWT secrets must be defined in environment variables');
+      }
+      this.initialized = true;
     }
   }
 
   // Generate access token
   generateAccessToken(payload) {
+    this._ensureInitialized();
     try {
       return jwt.sign(payload, this.accessTokenSecret, {
         expiresIn: this.accessTokenExpiry,
@@ -30,6 +39,7 @@ class JWTService {
 
   // Generate refresh token
   generateRefreshToken(payload) {
+    this._ensureInitialized();
     try {
       return jwt.sign(payload, this.refreshTokenSecret, {
         expiresIn: this.refreshTokenExpiry,
@@ -64,6 +74,7 @@ class JWTService {
 
   // Verify access token
   async verifyAccessToken(token) {
+    this._ensureInitialized();
     try {
       const decoded = await promisify(jwt.verify)(token, this.accessTokenSecret, {
         issuer: 'smart-helpdesk',

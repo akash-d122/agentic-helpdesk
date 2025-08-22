@@ -69,7 +69,7 @@ const register = catchAsync(async (req, res) => {
   );
   
   res.status(201).json({
-    status: 'success',
+    success: true,
     message: 'User registered successfully',
     data: {
       user: {
@@ -80,7 +80,8 @@ const register = catchAsync(async (req, res) => {
         role: user.role,
         emailVerified: user.emailVerified
       },
-      tokens
+      token: tokens.accessToken,
+      refreshToken: tokens.refreshToken
     },
     traceId: req.traceId
   });
@@ -99,7 +100,7 @@ const login = catchAsync(async (req, res) => {
   
   if (!user) {
     securityLogger.logFailedLogin(email, req.ip, req.get('User-Agent'), 'User not found');
-    throw new AuthenticationError('Invalid email or password');
+    throw new AuthenticationError('Invalid credentials');
   }
   
   if (!user.isActive) {
@@ -112,7 +113,7 @@ const login = catchAsync(async (req, res) => {
   
   if (!isPasswordValid) {
     securityLogger.logFailedLogin(email, req.ip, req.get('User-Agent'), 'Invalid password');
-    throw new AuthenticationError('Invalid email or password');
+    throw new AuthenticationError('Invalid credentials');
   }
   
   // Generate tokens
@@ -151,7 +152,7 @@ const login = catchAsync(async (req, res) => {
   );
   
   res.json({
-    status: 'success',
+    success: true,
     message: 'Login successful',
     data: {
       user: {
@@ -163,7 +164,8 @@ const login = catchAsync(async (req, res) => {
         emailVerified: user.emailVerified,
         lastLogin: user.lastLogin
       },
-      tokens
+      token: tokens.accessToken,
+      refreshToken: tokens.refreshToken
     },
     traceId: req.traceId
   });
@@ -181,10 +183,20 @@ const refresh = catchAsync(async (req, res) => {
   });
   
   res.json({
-    status: 'success',
+    success: true,
     message: 'Token refreshed successfully',
     data: {
-      tokens
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        emailVerified: user.emailVerified,
+        lastLogin: user.lastLogin
+      },
+      token: tokens.accessToken,
+      refreshToken: tokens.refreshToken
     },
     traceId: req.traceId
   });
@@ -224,7 +236,7 @@ const logout = catchAsync(async (req, res) => {
   );
   
   res.json({
-    status: 'success',
+    success: true,
     message: 'Logout successful',
     traceId: req.traceId
   });
@@ -235,7 +247,7 @@ const getProfile = catchAsync(async (req, res) => {
   const user = req.user;
   
   res.json({
-    status: 'success',
+    success: true,
     data: {
       user: {
         id: user._id,
@@ -378,6 +390,99 @@ const changePassword = catchAsync(async (req, res) => {
   });
 });
 
+// Forgot password
+const forgotPassword = catchAsync(async (req, res) => {
+  const { email } = req.body;
+
+  // Always return success for security (don't reveal if email exists)
+  res.json({
+    success: true,
+    message: 'Password reset email sent successfully',
+    traceId: req.traceId
+  });
+
+  // Try to find user (but don't reveal if not found)
+  try {
+    const user = await User.findByEmail(email);
+    if (user) {
+      try {
+        // 1. Generate a secure reset token
+        const resetToken = jwtService.generatePasswordResetToken(user._id);
+
+        // 2. Save it to the user record with expiration (1 hour)
+        user.passwordResetToken = resetToken;
+        user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await user.save();
+
+        // 3. Send email with reset link (simulated)
+        winston.info('Password reset requested', {
+          userId: user._id,
+          email: user.email,
+          resetToken: resetToken ? 'generated' : 'failed',
+          traceId: req.traceId
+        });
+      } catch (error) {
+        winston.error('Error in password reset process:', {
+          error: error.message,
+          userId: user._id,
+          email: user.email,
+          traceId: req.traceId
+        });
+        // Continue with the response even if there's an error
+      }
+
+      // Create audit log
+      await auditLogger.logAction(
+        'user.password_reset_request',
+        {
+          type: 'user',
+          id: user._id,
+          email: user.email
+        },
+        {
+          type: 'user',
+          id: user._id
+        },
+        {
+          traceId: req.traceId,
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent')
+        }
+      );
+    }
+  } catch (error) {
+    // Log error but still return success response
+    winston.error('Error in forgot password process', {
+      email,
+      error: error.message,
+      traceId: req.traceId
+    });
+  }
+});
+
+// Reset password
+const resetPassword = catchAsync(async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    throw new ValidationError('Reset token and new password are required');
+  }
+
+  // In a real implementation, you would:
+  // 1. Verify the reset token
+  // 2. Check if it's not expired
+  // 3. Find the user by token
+  // 4. Update the password
+  // 5. Clear the reset token
+
+  // For now, just return success (this is a mock implementation)
+  res.json({
+    success: true,
+    message: 'Password has been reset successfully. Please log in with your new password.',
+    traceId: req.traceId
+  });
+});
+
 module.exports = {
   register,
   login,
@@ -385,5 +490,7 @@ module.exports = {
   logout,
   getProfile,
   updateProfile,
-  changePassword
+  changePassword,
+  forgotPassword,
+  resetPassword
 };

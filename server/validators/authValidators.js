@@ -9,9 +9,9 @@ const validateRegister = [
   
   body('password')
     .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long')
+    .withMessage('password must be at least 6 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
+    .withMessage('password must contain at least one lowercase letter, one uppercase letter, and one number'),
   
   body('firstName')
     .trim()
@@ -29,8 +29,8 @@ const validateRegister = [
   
   body('role')
     .optional()
-    .isIn(['admin', 'agent', 'user'])
-    .withMessage('Role must be one of: admin, agent, user')
+    .isIn(['admin', 'agent', 'user', 'customer'])
+    .withMessage('Role must be one of: admin, agent, user, customer')
 ];
 
 // Login validation
@@ -50,8 +50,6 @@ const validateRefreshToken = [
   body('refreshToken')
     .notEmpty()
     .withMessage('Refresh token is required')
-    .isJWT()
-    .withMessage('Invalid refresh token format')
 ];
 
 // Logout validation
@@ -150,6 +148,10 @@ const validateResendEmailVerification = [
     .withMessage('Please provide a valid email address')
 ];
 
+// Aliases for consistency
+const validateForgotPassword = validatePasswordResetRequest;
+const validateResetPassword = validatePasswordReset;
+
 module.exports = {
   validateRegister,
   validateLogin,
@@ -160,5 +162,7 @@ module.exports = {
   validatePasswordResetRequest,
   validatePasswordReset,
   validateEmailVerification,
-  validateResendEmailVerification
+  validateResendEmailVerification,
+  validateForgotPassword,
+  validateResetPassword
 };

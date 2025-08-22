@@ -18,7 +18,9 @@ const {
   validateRefreshToken,
   validateLogout,
   validateProfileUpdate,
-  validatePasswordChange
+  validatePasswordChange,
+  validateForgotPassword,
+  validateResetPassword
 } = require('../validators/authValidators');
 
 // Public routes (no authentication required)
@@ -50,7 +52,29 @@ router.post('/refresh',
   authController.refresh
 );
 
+// Forgot password
+router.post('/forgot-password',
+  authRateLimit,
+  validateForgotPassword,
+  handleValidationErrors,
+  authController.forgotPassword
+);
+
+// Reset password
+router.post('/reset-password',
+  authRateLimit,
+  validateResetPassword,
+  handleValidationErrors,
+  authController.resetPassword
+);
+
 // Protected routes (authentication required)
+
+// Get current user (alias for profile)
+router.get('/me',
+  authenticate,
+  authController.getProfile
+);
 
 // Get current user profile
 router.get('/profile',

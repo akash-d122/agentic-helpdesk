@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Helpdesk Authentication Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .auth-section {
+            margin-bottom: 30px;
+        }
+        
+        .auth-section h2 {
+            color: #444;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .response.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .response.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .user-info {
+            background: #e7f3ff;
+            border: 1px solid #b8daff;
+            color: #004085;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .api-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .api-info h3 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+        
+        .endpoint {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .method.post {
+            background: #28a745;
+            color: white;
+        }
+        
+        .method.get {
+            background: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Smart Helpdesk</h1>
+            <p>Authentication System Demo</p>
+        </div>
+        
+        <div class="auth-section">
+            <h2>User Registration</h2>
+            <div class="form-group">
+                <label for="regEmail">Email:</label>
+                <input type="email" id="regEmail" placeholder="Enter your email" value="demo@example.com">
+            </div>
+            <div class="form-group">
+                <label for="regPassword">Password:</label>
+                <input type="password" id="regPassword" placeholder="Enter password (min 8 chars)" value="Password123!">
+            </div>
+            <div class="form-group">
+                <label for="regFirstName">First Name:</label>
+                <input type="text" id="regFirstName" placeholder="Enter first name" value="Demo">
+            </div>
+            <div class="form-group">
+                <label for="regLastName">Last Name:</label>
+                <input type="text" id="regLastName" placeholder="Enter last name" value="User">
+            </div>
+            <button class="btn" onclick="register()">Register</button>
+        </div>
+        
+        <div class="auth-section">
+            <h2>User Login</h2>
+            <div class="form-group">
+                <label for="loginEmail">Email:</label>
+                <input type="email" id="loginEmail" placeholder="Enter your email" value="demo@example.com">
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password:</label>
+                <input type="password" id="loginPassword" placeholder="Enter password" value="Password123!">
+            </div>
+            <button class="btn" onclick="login()">Login</button>
+        </div>
+        
+        <div class="auth-section">
+            <h2>Protected Actions</h2>
+            <button class="btn btn-secondary" onclick="getProfile()" id="profileBtn" disabled>Get My Profile</button>
+            <button class="btn btn-secondary" onclick="refreshToken()" id="refreshBtn" disabled>Refresh Token</button>
+            <button class="btn btn-secondary" onclick="logout()" id="logoutBtn" disabled>Logout</button>
+        </div>
+        
+        <div id="userInfo" class="user-info hidden">
+            <h3>Logged in as:</h3>
+            <div id="userDetails"></div>
+        </div>
+        
+        <div id="response" class="response hidden"></div>
+        
+        <div class="api-info">
+            <h3>Available API Endpoints:</h3>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/auth/register - User registration
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/auth/login - User login
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>/api/auth/me - Get user profile (requires auth)
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/auth/refresh - Refresh access token
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/auth/logout - User logout (requires auth)
+            </div>
+            <div class="endpoint">
+                <span class="method post">POST</span>/api/auth/forgot-password - Password reset request
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>/health - Health check
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let accessToken = localStorage.getItem('accessToken');
+        let refreshTokenValue = localStorage.getItem('refreshToken');
+        
+        // Update UI based on login state
+        function updateUI() {
+            const isLoggedIn = !!accessToken;
+            document.getElementById('profileBtn').disabled = !isLoggedIn;
+            document.getElementById('refreshBtn').disabled = !isLoggedIn;
+            document.getElementById('logoutBtn').disabled = !isLoggedIn;
+            
+            if (!isLoggedIn) {
+                document.getElementById('userInfo').classList.add('hidden');
+            }
+        }
+        
+        // Initialize UI
+        updateUI();
+        
+        function showResponse(data, isError = false) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = JSON.stringify(data, null, 2);
+            responseDiv.className = `response ${isError ? 'error' : 'success'}`;
+            responseDiv.classList.remove('hidden');
+        }
+        
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    showResponse(data, true);
+                    return null;
+                }
+                
+                showResponse(data);
+                return data;
+            } catch (error) {
+                showResponse({ error: error.message }, true);
+                return null;
+            }
+        }
+        
+        async function register() {
+            const data = {
+                email: document.getElementById('regEmail').value,
+                password: document.getElementById('regPassword').value,
+                firstName: document.getElementById('regFirstName').value,
+                lastName: document.getElementById('regLastName').value,
+                role: 'customer'
+            };
+            
+            const result = await makeRequest('/api/auth/register', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            
+            if (result && result.success) {
+                // Auto-fill login form
+                document.getElementById('loginEmail').value = data.email;
+                document.getElementById('loginPassword').value = data.password;
+            }
+        }
+        
+        async function login() {
+            const data = {
+                email: document.getElementById('loginEmail').value,
+                password: document.getElementById('loginPassword').value
+            };
+            
+            const result = await makeRequest('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            
+            if (result && result.success) {
+                accessToken = result.data.token;
+                refreshTokenValue = result.data.refreshToken;
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('refreshToken', refreshTokenValue);
+                
+                // Show user info
+                const userInfo = document.getElementById('userInfo');
+                const userDetails = document.getElementById('userDetails');
+                userDetails.innerHTML = `
+                    <strong>Name:</strong> ${result.data.user.firstName} ${result.data.user.lastName}<br>
+                    <strong>Email:</strong> ${result.data.user.email}<br>
+                    <strong>Role:</strong> ${result.data.user.role}
+                `;
+                userInfo.classList.remove('hidden');
+                
+                updateUI();
+            }
+        }
+        
+        async function getProfile() {
+            const result = await makeRequest('/api/auth/me');
+            
+            if (result && result.success) {
+                const userDetails = document.getElementById('userDetails');
+                userDetails.innerHTML = `
+                    <strong>Name:</strong> ${result.data.user.firstName} ${result.data.user.lastName}<br>
+                    <strong>Email:</strong> ${result.data.user.email}<br>
+                    <strong>Role:</strong> ${result.data.user.role}<br>
+                    <strong>ID:</strong> ${result.data.user._id}
+                `;
+            }
+        }
+        
+        async function refreshToken() {
+            const result = await makeRequest('/api/auth/refresh', {
+                method: 'POST',
+                body: JSON.stringify({ refreshToken: refreshTokenValue })
+            });
+            
+            if (result && result.success) {
+                accessToken = result.data.token;
+                refreshTokenValue = result.data.refreshToken;
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('refreshToken', refreshTokenValue);
+            }
+        }
+        
+        async function logout() {
+            const result = await makeRequest('/api/auth/logout', {
+                method: 'POST'
+            });
+            
+            if (result && result.success) {
+                accessToken = null;
+                refreshTokenValue = null;
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                updateUI();
+            }
+        }
+    </script>
+</body>
+</html>

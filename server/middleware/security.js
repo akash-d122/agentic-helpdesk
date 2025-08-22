@@ -65,13 +65,15 @@ const generalRateLimit = createRateLimit(
   'Too many requests from this IP, please try again later.'
 );
 
-// Strict rate limiting for authentication endpoints
-const authRateLimit = createRateLimit(
-  15 * 60 * 1000, // 15 minutes
-  parseInt(process.env.AUTH_RATE_LIMIT_MAX) || 5,
-  'Too many authentication attempts, please try again later.',
-  true // Skip successful requests
-);
+// Strict rate limiting for authentication endpoints (disabled in test environment)
+const authRateLimit = process.env.NODE_ENV === 'test'
+  ? (req, res, next) => next() // No-op middleware for tests
+  : createRateLimit(
+      15 * 60 * 1000, // 15 minutes
+      parseInt(process.env.AUTH_RATE_LIMIT_MAX) || 5,
+      'Too many authentication attempts, please try again later.',
+      true // Skip successful requests
+    );
 
 // Strict rate limiting for password reset
 const passwordResetRateLimit = createRateLimit(

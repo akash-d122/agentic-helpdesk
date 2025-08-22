@@ -3,6 +3,13 @@
  * Global test utilities and database setup
  */
 
+// Set test environment variables BEFORE any imports
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-secret-key-for-testing';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-key-for-testing';
+process.env.JWT_EXPIRES_IN = '1h';
+process.env.JWT_REFRESH_EXPIRES_IN = '7d';
+
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const jwt = require('jsonwebtoken');
@@ -97,14 +104,19 @@ global.createTestAISuggestion = (overrides = {}) => ({
 // JWT token generation for tests
 global.generateTestToken = (user = global.testUsers.admin) => {
   return jwt.sign(
-    { 
-      userId: user._id, 
-      email: user.email, 
+    {
+      id: user._id,
+      email: user.email,
       role: user.role,
-      permissions: user.permissions 
+      firstName: user.firstName,
+      lastName: user.lastName
     },
     process.env.JWT_SECRET || 'test-secret',
-    { expiresIn: '1h' }
+    {
+      expiresIn: '1h',
+      issuer: 'smart-helpdesk',
+      audience: 'smart-helpdesk-users'
+    }
   );
 };
 
@@ -121,10 +133,8 @@ beforeAll(async () => {
   });
   
   global.testDb = mongoose.connection.db;
-  
-  // Set test environment variables
-  process.env.NODE_ENV = 'test';
-  process.env.JWT_SECRET = 'test-secret';
+
+  // Set database URI for tests
   process.env.MONGODB_URI = mongoUri;
 });
 

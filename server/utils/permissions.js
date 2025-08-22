@@ -7,25 +7,28 @@ const ROLE_HIERARCHY = {
   admin: 3
 };
 
+// Base permissions for each role
+const BASE_USER_PERMISSIONS = [
+  // Ticket permissions
+  'ticket:create',
+  'ticket:read:own',
+  'ticket:update:own',
+
+  // Profile permissions
+  'profile:read:own',
+  'profile:update:own',
+
+  // Knowledge base permissions
+  'article:read:published'
+];
+
 // Define permissions for each role
 const ROLE_PERMISSIONS = {
-  user: [
-    // Ticket permissions
-    'ticket:create',
-    'ticket:read:own',
-    'ticket:update:own',
-    
-    // Profile permissions
-    'profile:read:own',
-    'profile:update:own',
-    
-    // Knowledge base permissions
-    'article:read:published'
-  ],
-  
+  user: BASE_USER_PERMISSIONS,
+
   agent: [
     // Inherit all user permissions
-    ...ROLE_PERMISSIONS?.user || [],
+    ...BASE_USER_PERMISSIONS,
     
     // Ticket permissions
     'ticket:read:all',
@@ -52,8 +55,23 @@ const ROLE_PERMISSIONS = {
   ],
   
   admin: [
-    // Inherit all agent permissions
-    ...ROLE_PERMISSIONS?.agent || [],
+    // Inherit all user permissions
+    ...BASE_USER_PERMISSIONS,
+
+    // Inherit all agent permissions (manually listed to avoid circular reference)
+    'ticket:read:all',
+    'ticket:update:all',
+    'ticket:assign',
+    'ticket:resolve',
+    'ticket:close',
+    'agent:review:suggestions',
+    'agent:approve:responses',
+    'agent:reject:responses',
+    'agent:modify:responses',
+    'article:read:all',
+    'article:feedback',
+    'audit:read:tickets',
+    'user:read:basic',
     
     // User management permissions
     'user:create',

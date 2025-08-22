@@ -1,5 +1,4 @@
 const winston = require('winston');
-const { ValidationError } = require('express-validator');
 
 // Custom error classes
 class AppError extends Error {
@@ -8,12 +7,12 @@ class AppError extends Error {
     this.statusCode = statusCode;
     this.isOperational = isOperational;
     this.name = this.constructor.name;
-    
+
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
-class ValidationError extends AppError {
+class CustomValidationError extends AppError {
   constructor(message, errors = []) {
     super(message, 400);
     this.errors = errors;
@@ -71,7 +70,7 @@ const handleDuplicateFieldsDB = (err) => {
 const handleValidationErrorDB = (err) => {
   const errors = Object.values(err.errors).map(el => el.message);
   const message = `Invalid input data. ${errors.join('. ')}`;
-  return new ValidationError(message, errors);
+  return new CustomValidationError(message, errors);
 };
 
 const handleJWTError = () =>
@@ -89,8 +88,9 @@ const sendErrorDev = (err, req, res) => {
   });
 
   res.status(err.statusCode || 500).json({
+    success: false,
     status: 'error',
-    error: err,
+    error: err.message,
     message: err.message,
     stack: err.stack,
     traceId: req.traceId
@@ -102,7 +102,9 @@ const sendErrorProd = (err, req, res) => {
   // Operational, trusted error: send message to client
   if (err.isOperational) {
     const response = {
+      success: false,
       status: 'error',
+      error: err.message,
       message: err.message,
       traceId: req.traceId
     };
@@ -122,7 +124,9 @@ const sendErrorProd = (err, req, res) => {
     });
 
     res.status(500).json({
+      success: false,
       status: 'error',
+      error: 'Something went wrong!',
       message: 'Something went wrong!',
       traceId: req.traceId
     });
@@ -176,7 +180,7 @@ const handleValidationErrors = (req, res, next) => {
       value: error.value
     }));
     
-    const err = new ValidationError('Validation failed', errorMessages);
+    const err = new CustomValidationError('Validation failed', errorMessages);
     return next(err);
   }
   
@@ -221,7 +225,7 @@ process.on('uncaughtException', (err) => {
 
 module.exports = {
   AppError,
-  ValidationError,
+  ValidationError: CustomValidationError,
   AuthenticationError,
   AuthorizationError,
   NotFoundError,

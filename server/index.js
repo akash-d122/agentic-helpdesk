@@ -80,6 +80,9 @@ app.use(auditMiddleware({
 // Static file serving (for uploads, etc.)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, 'public')));
+
 // API routes
 app.use('/', healthRoutes);
 app.use('/api/auth', authRoutes);
