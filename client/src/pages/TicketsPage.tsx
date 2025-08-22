@@ -11,6 +11,7 @@ export default function TicketsPage() {
       <Route index element={<TicketsList />} />
       <Route path="new" element={<NewTicket />} />
       <Route path=":id" element={<TicketDetail />} />
+      <Route path=":id/edit" element={<NewTicket />} />
     </Routes>
   )
 }

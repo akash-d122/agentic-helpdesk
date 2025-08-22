@@ -12,6 +12,7 @@ class ConfigManager {
     this.defaultConfig = {
       // AI Processing Settings
       enabled: true,
+      stubMode: process.env.STUB_MODE === 'true' || process.env.NODE_ENV === 'test',
       autoResolveThreshold: 0.85,
       maxProcessingTime: 30000, // 30 seconds
       

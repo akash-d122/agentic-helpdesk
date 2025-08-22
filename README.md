@@ -58,7 +58,13 @@ cp server/.env.example server/.env
 # Edit server/.env with your configuration
 ```
 
-4. Start the development servers:
+4. Seed the database:
+```bash
+cd server
+npm run seed
+```
+
+5. Start the development servers:
 ```bash
 npm run dev
 ```
@@ -66,6 +72,13 @@ npm run dev
 The application will be available at:
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:5000
+
+### Default Login Credentials
+```
+Admin:  admin@example.com / admin123
+Agent:  agent@example.com / agent123
+User:   user@example.com / user123
+```
 
 ## Project Structure
 
@@ -102,6 +115,37 @@ The API follows RESTful conventions with the following main endpoints:
 - `POST /api/agent/process` - Trigger AI processing
 
 For detailed API documentation, see [API.md](docs/API.md).
+
+## 🤖 AI Configuration
+
+### STUB_MODE
+Set `STUB_MODE=true` in your `.env` file to use deterministic AI responses for testing and demonstration purposes. This mode provides:
+- Predictable classification results
+- Consistent confidence scores
+- Reliable auto-resolution decisions
+- No external API dependencies
+
+### Production AI
+For production use with real AI services:
+1. Set `STUB_MODE=false`
+2. Configure your AI provider API keys
+3. Adjust confidence thresholds in admin panel
+
+## 📊 Key Features Demonstrated
+
+### Agentic Workflow System
+- **Intelligent Classification** - Automatic categorization (billing/technical/shipping/other)
+- **Knowledge Retrieval** - Semantic search through knowledge base articles
+- **Response Generation** - AI-generated draft responses with citations
+- **Confidence Scoring** - Multi-factor confidence assessment
+- **Auto-Resolution** - Automatic ticket closure for high-confidence cases
+- **Human Review** - Agent oversight for AI suggestions
+
+### Comprehensive Audit Trail
+- Complete activity tracking with trace IDs
+- User action logging
+- AI decision tracking
+- Performance metrics collection
 
 ## Development
 

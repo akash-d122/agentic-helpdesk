@@ -10,7 +10,10 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "build": "echo 'No build step required for Node.js'",
-    "postinstall": "echo 'Installation complete'"
+    "postinstall": "echo 'Installation complete'",
+    "seed": "node scripts/seed.js",
+    "seed:dev": "NODE_ENV=development node scripts/seed.js",
+    "test:integration": "node scripts/test-integration.js"
   },
   "engines": {
     "node": ">=18.0.0",

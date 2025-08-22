@@ -10,6 +10,8 @@ const morgan = require('morgan');
 const authRoutes = require('./routes/auth');
 const ticketRoutes = require('./routes/tickets');
 const knowledgeRoutes = require('./routes/knowledge');
+const articleRoutes = require('./routes/articles');
+const auditRoutes = require('./routes/audit');
 const userRoutes = require('./routes/users');
 const aiRoutes = require('./routes/ai');
 const adminRoutes = require('./routes/admin');
@@ -101,6 +103,8 @@ app.get('/readyz', async (req, res) => {
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
+app.use('/api/articles', articleRoutes);
+app.use('/api/audit', auditRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/admin', adminRoutes);
