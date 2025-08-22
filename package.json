@@ -13,8 +13,9 @@
     "server:test": "cd server && npm test",
     "client:test": "cd client && npm test",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
-    "build": "npm run client:build",
-    "start": "npm run server:start"
+    "build": "cd server && npm install",
+    "start": "npm run server:start",
+    "postinstall": "cd server && npm install"
   },
   "keywords": [
     "helpdesk",
@@ -25,7 +26,42 @@
   ],
   "author": "Smart Helpdesk Team",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "bcryptjs": "^2.4.3",
+    "bull": "^4.12.2",
+    "compression": "^1.8.1",
+    "compromise": "^14.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.5.1",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.2.0",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.3",
+    "morgan": "^1.10.1",
+    "multer": "^1.4.5-lts.1",
+    "natural": "^6.8.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^7.0.5",
+    "openai": "^4.20.1",
+    "redis": "^4.6.11",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
+  },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "eslint": "^8.55.0",
+    "jest": "^29.7.0",
+    "mongodb-memory-server": "^9.1.3",
+    "nodemon": "^3.0.2",
+    "prettier": "^3.1.0",
+    "supertest": "^6.3.3"
   }
 }
